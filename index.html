@@ -54,6 +54,10 @@
     box-sizing: border-box;
   }
   
+  .item-inner.filter {
+    border: 5px solid rgba(0, 0, 0, .8);
+  }
+  
   .item-inner.zero {
     background-color: rgba(0, 0, 0, .1);
     border: 2px solid rgba(0, 0, 0, .5);
@@ -66,6 +70,11 @@
   .item-inner.zero.selected {
     background-color: rgba(255, 0, 0, .1);
     border: 2px solid rgba(255, 0, 0, .5);
+  }
+  
+  .item-inner.filter.selected {
+    border: 5px solid rgba(255, 0, 0, .8);
+    background-color: rgba(255, 0, 0, 0.5);
   }
 
   .item-inner span {
@@ -92,11 +101,15 @@
     stroke-linecap: round;
   }
 
-  .stroke.selected {
+  .stroke.selected-from {
     stroke: rgba(255, 0, 0, 1);
   }
   
-  .count {
+  .stroke.selected-to {
+    stroke: rgba(0, 255, 0, 1);
+  }
+  
+  .count-from {
     position: absolute;
     color: #fff;
     background: rgb(237, 85, 69);
@@ -105,6 +118,17 @@
     border-radius: 8px;
     font-size: 13px;
     transform: translate(-50%, -50%);
+  }
+  
+  .count-to {
+    position: absolute;
+    color: #fff;
+    background: rgb(125, 240, 55);
+    line-height: 1;
+    padding: 5px;
+    border-radius: 8px;
+    font-size: 13px;
+    transform: translate(25%);
   }
 </style>
 
@@ -117,8 +141,11 @@
         <marker id="arrow" markerWidth="10" markerHeight="10" refX="7.5" refY="3" orient="auto">
           <path d="M0,0 L0,6 L9,3 z" fill="#000" />
         </marker>
-        <marker id="arrow-selected" markerWidth="10" markerHeight="10" refX="7.5" refY="3" orient="auto">
+        <marker id="arrow-selected-from" markerWidth="10" markerHeight="10" refX="7.5" refY="3" orient="auto">
           <path d="M0,0 L0,6 L9,3 z" fill="rgba(255,0,0,1)" />
+        </marker>
+        <marker id="arrow-selected-to" markerWidth="10" markerHeight="10" refX="7.5" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L9,3 z" fill="rgba(0,255,0,1)" />
         </marker>
       </defs>
     </svg>
@@ -220,6 +247,9 @@
 
 
       console.log(payloads)
+      
+      
+      /////
 
       $.each(startpoints, function(i, e) {
 
@@ -248,8 +278,10 @@
                 var size = (payloads[lineId].to[s].count / (maxSize / 100)) + 30;
                 
                 var zero = (payloads[lineId].to[s].count) ? '' : 'zero'; 
+                
+                var filter = (payloads[lineId].to[s].name == 'became_qlead' || payloads[lineId].to[s].name == 'became_customer') ? 'filter' : ''
 
-                items += `<div data-child="true" class="item" id="${payloads[lineId].to[s].name}"><div class="item-inner ${zero}" style="width:${size}px;height:${size}px;max-width:${size}px;max-height:${size}px;min-width:${size}px;min-height:${size}px;"><span><strong>${payloads[lineId].to[s].count}</strong><br>${payloads[lineId].to[s].name}</span></div></div>`;
+                items += `<div data-child="true" class="item" id="${payloads[lineId].to[s].name}"><div class="item-inner ${zero} ${filter}" style="width:${size}px;height:${size}px;max-width:${size}px;max-height:${size}px;min-width:${size}px;min-height:${size}px;"><span><strong>${payloads[lineId].to[s].count}</strong><br>${payloads[lineId].to[s].name}</span></div></div>`;
               }
 
             }
@@ -270,6 +302,11 @@
         if ($('.item[data-child="true"]').length !== tempItems) renderPayloads();
 
       }
+      
+      
+      
+      
+      
 
       drawLinks();
 
@@ -299,7 +336,7 @@
 
             var width = Math.sqrt(e.transit_count / (maxCount / 100)) - 0.5;
 
-            var line = `<line data-pos="${x1} ${y1}" data-count="${e.transit_count}" data-from="${e.from.name}" data-to="${e.to.name}" class="stroke" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#000" stroke-width="${width}" marker-end="url(#arrow)" />`;
+            var line = `<line data-pos-from="${x1} ${y1}" data-pos-to="${x2} ${y2}" data-count="${e.transit_count}" data-from="${e.from.name}" data-to="${e.to.name}" class="stroke" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#000" stroke-width="${width}" marker-end="url(#arrow)" />`;
 
             document.getElementById('lines').appendChild(parseSVG(line));
           }
@@ -310,8 +347,9 @@
         var thisId = $(this).parent().attr('id');
 
         $('.item-inner').removeClass('selected');
-        $('line').removeClass('selected').attr('marker-end', 'url(#arrow)');
-        $('.count').remove();
+        $('line').removeClass('selected-from').removeClass('selected-to').attr('marker-end', 'url(#arrow)');
+        $('.count-from').remove();
+        $('.count-to').remove();
 
         $(this).addClass('selected');
 
@@ -320,25 +358,44 @@
           if ($(e).data('to') == thisId) {
 
             var svg = $(e).parent();
-            var pos = $(e).data('pos').split(' ');
+            var pos = $(e).data('pos-from').split(' ');
+            
             var count = $(e).data('count');
 
-            $(e).addClass('selected').attr('marker-end', 'url(#arrow-selected)');
+            $(e).addClass('selected-from').attr('marker-end', 'url(#arrow-selected-from)');
 
             var svg = document.querySelector("#lines");
             var lines = document.querySelectorAll("line");
 
             svg.appendChild(e);
             
-            $('.grid').append(`<div class="count" style="top:${pos[1]}px;left:${pos[0]}px;">${count}</div>`)
+            $('.grid').append(`<div class="count-from" style="top:${pos[1]}px;left:${pos[0]}px;">${count}</div>`)
+
+          }
+          
+          if ($(e).data('from') == thisId) {
+
+            var svg = $(e).parent();
+            var pos = $(e).data('pos-to').split(' ');
+            console.log(pos)
+            var count = $(e).data('count');
+
+            $(e).addClass('selected-to').attr('marker-end', 'url(#arrow-selected-to)');
+
+            var svg = document.querySelector("#lines");
+            var lines = document.querySelectorAll("line");
+
+            svg.appendChild(e);
+            
+            $('.grid').append(`<div class="count-to" style="top:${pos[1]}px;left:${pos[0]}px;">${count}</div>`)
 
           }
 
         });
-
-
-
-      })
+      });
+      
+      
+      
 
       function parseSVG(s) {
         var div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
