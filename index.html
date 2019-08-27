@@ -185,13 +185,13 @@
         payloads[edges.to_payload[e]].name = edges.to_payload[e];
       }
 
-      for (var n in nodes.to_payload) {
-        payloads[nodes.to_payload[n]] = JSON.parse(JSON.stringify(proto));
-        payloads[nodes.to_payload[n]].count = nodes.transit_count[n];
-        payloads[nodes.to_payload[n]].name = nodes.to_payload[n];
+      for (var n in nodes.node_name) {
+        payloads[nodes.node_name[n]] = JSON.parse(JSON.stringify(proto));
+        payloads[nodes.node_name[n]].count = nodes.count[n];
+        payloads[nodes.node_name[n]].name = nodes.node_name[n];
 
 
-        if (nodes.transit_count[n] > maxSize) maxSize = nodes.transit_count[n];
+        if (nodes.count[n] > maxSize) maxSize = nodes.count[n];
 
       }
 
@@ -202,12 +202,10 @@
           id: i,
           from: payloads[edges.from_payload[e]],
           to: payloads[edges.to_payload[e]],
-          avg_time_sec: edges.avg_time_sec[e],
-          transit_count: edges.transit_count[e],
-          unique_transit_count: edges.unique_transit_count[e]
+          transit_count: edges.unique_transit_count[e]
         };
 
-        if (edges.transit_count[e] > maxCount) maxCount = edges.transit_count[e];
+        if ( edges.unique_transit_count[e] > maxCount) maxCount = edges.unique_transit_count[e];
 
         links.push(temp);
 
@@ -246,7 +244,7 @@
       })();
 
 
-      console.log(payloads)
+      console.log(payloads, links)
       
       
       /////
@@ -377,7 +375,6 @@
 
             var svg = $(e).parent();
             var pos = $(e).data('pos-to').split(' ');
-            console.log(pos)
             var count = $(e).data('count');
 
             $(e).addClass('selected-to').attr('marker-end', 'url(#arrow-selected-to)');
